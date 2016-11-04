@@ -25,7 +25,6 @@ int main(int argc, char *argv[])
   struct addrinfo indic = {AI_PASSIVE, /* Toute interface */
                            PF_INET,SOCK_STREAM,0, /* IP mode connecté */
                            0,NULL,NULL,NULL};
-  struct sockaddr_in client; /* adresse de socket du client */
   char * port; /* Port pour le service */
   int err; /* code d'erreur */
 
@@ -80,7 +79,6 @@ int main(int argc, char *argv[])
 	int max_socket = s;
 
   while(1) {
-	printf("lol\n");
 	//mise en place du select
 	FD_ZERO(&rdfs);
 
@@ -101,26 +99,32 @@ int main(int argc, char *argv[])
 	if( FD_ISSET(s, &rdfs) )
 	{
 		printf("Heyyyyyyy y'a un nouveau client !!!!!\n");
-		len=sizeof(struct sockaddr_in);
-		if( (clients[cl_i++] = accept(s,(struct sockaddr *)&client,(socklen_t*)&len)) < 0 )
+		struct sockaddr_in client; /* adresse de socket du client */		
+		len = sizeof(struct sockaddr_in);
+		if( (n = accept(s,(struct sockaddr *)&client,(socklen_t*)&len)) < 0 )
 		{
 		  perror("accept");
 		  exit(7);
 		}
 		
 		//mise à jour du plus grand socket
-		if( clients[cl_i - 1] > max_socket )
-			max_socket = clients[cl_i - 1];
+		if( n > max_socket )
+			max_socket = n;
 
 		//Ajout du nouveau client au select
-		FD_SET(clients[cl_i - 1], &rdfs);
+		FD_SET(n, &rdfs);
+
+		//Ajout du nouveau client à la liste
+		clients[cl_i] = n;
+		cl_i++;
+		printf("cl_i : %d\n", cl_i);
 	}
 	else // Sinon un client nous parle
 	{
 		printf("Je recoi !\n");
 		for( i = 0; i < cl_i; i++) //on parcour tout les client
 		{
-			if( FD_ISSET(clients[0], &rdfs) )
+			if( FD_ISSET(clients[i], &rdfs) )
 			{
 				/* Nom réseau du client 
 				char hotec[NI_MAXHOST];  char portc[NI_MAXSERV];
@@ -176,6 +180,7 @@ void echo_select(int f, char* hote, char* port)
 		  close(f);
 		  fprintf(stderr,"[%s:%s](%i): Terminé.\n",hote,port,pid);
 	 }
+	printf("fin de echo_select\n");
 }
 
 
